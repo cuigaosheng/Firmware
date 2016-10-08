@@ -69,13 +69,14 @@ Battery::~Battery()
 void
 Battery::reset(battery_status_s *battery_status)
 {
-	memset(battery_status, 0, sizeof(*battery_status));
+	//memset(battery_status, 0, sizeof(*battery_status));
 	battery_status->current_a = -1.0f;
 	battery_status->remaining = 1.0f;
 	battery_status->cell_count = _param_n_cells.get();
+	battery_status->cell_count = 4;
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
-	battery_status->connected = false;
+	//battery_status->connected = false;
 }
 
 void
@@ -105,6 +106,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 void
 Battery::filterVoltage(float voltage_v)
 {
+#if 0
 	if (_voltage_filtered_v < 0.0f) {
 		_voltage_filtered_v = voltage_v;
 	}
@@ -115,11 +117,15 @@ Battery::filterVoltage(float voltage_v)
 	if (PX4_ISFINITE(filtered_next)) {
 		_voltage_filtered_v = filtered_next;
 	}
+#else
+		_voltage_filtered_v = voltage_v;
+#endif
 }
 
 void
 Battery::filterCurrent(float current_a)
 {
+#if 0
 	if (_current_filtered_a < 0.0f) {
 		_current_filtered_a = current_a;
 	}
@@ -130,6 +136,9 @@ Battery::filterCurrent(float current_a)
 	if (PX4_ISFINITE(filtered_next)) {
 		_current_filtered_a = filtered_next;
 	}
+#else
+		_current_filtered_a = current_a;
+#endif
 }
 
 

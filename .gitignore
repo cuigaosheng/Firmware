@@ -72,3 +72,5 @@ GTAGS
 # uavcan firmware
 ROMFS/px4fmu_common/uavcan/
 vectorcontrol/
+*.patch
+*.rej

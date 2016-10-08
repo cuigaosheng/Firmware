@@ -264,7 +264,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// publish the battery voltage
 			int batt_multi;
-			orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &batt_multi, ORB_PRIO_HIGH);
+			//orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &battery_status, &batt_multi, ORB_PRIO_HIGH);
 		}
 		break;
 

@@ -338,10 +338,6 @@ then
 	then
 	fi
 
-	#
-	# Sensors System (start before Commander so Preflight checks are properly run)
-	#
-	sh /etc/init.d/rc.sensors
 
 	# Needs to be this early for in-air-restarts
 	if [ $OUTPUT_MODE == hil ]
@@ -491,12 +487,12 @@ then
 		if [ $TTYS1_BUSY == yes ]
 		then
 			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			set MAVLINK_F "-r 1200 -d /dev/ttyS0"
+			set MAVLINK_F "-b 115200 -r 1200 -d /dev/ttyS0"
 
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
 		else
-			set MAVLINK_F "-r 1200"
+			set MAVLINK_F "-b 115200 -r 1200"
 			# Avoid using ttyS1 for MAVLink on FMUv4
 			if ver hwcmp PX4FMU_V4
 			then
@@ -575,6 +571,11 @@ then
 			camera_trigger start
 		fi
 	fi
+
+	#
+	# Sensors System (start before Commander so Preflight checks are properly run)
+	#
+	sh /etc/init.d/rc.sensors
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value

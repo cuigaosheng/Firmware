@@ -588,12 +588,13 @@ BATT_SMBUS::cycle()
 {
 	// get current time
 	uint64_t now = hrt_absolute_time();
-
+	
 	// exit without rescheduling if we have failed to find a battery after 10 seconds
 	if (!_enabled && (now - _start_time > BATT_SMBUS_TIMEOUT_US)) {
 		warnx("did not find smart battery");
 		return;
 	}
+	//warnx("_enabled = %d now = %lf _start_time = %lf BATT_SMBUS_TIMEOUT_US = %d - (now -  _start_time > BATT_SMBUS_TIMEOUT_US) = %d\n", _enabled, now, _start_time, BATT_SMBUS_TIMEOUT_US, (now -  _start_time > BATT_SMBUS_TIMEOUT_US));	
 
 	bool perform_solo_battry_check = false; // Only check if it is a solo battery if changes have been made to the SBS data
 
@@ -647,6 +648,7 @@ BATT_SMBUS::cycle()
 	uint16_t tmp;
 
 	if (read_reg(BATT_SMBUS_VOLTAGE, tmp) == OK) {
+		//printf("I am in BATT_SMBUS::cycle() and read_reg() = OK\n");
 		// initialise new_report
 		memset(&new_report, 0, sizeof(new_report));
 
@@ -678,6 +680,7 @@ BATT_SMBUS::cycle()
 		}
 
 		// if it is a solo battery, check for shutdown on button press
+		//printf("_is_solo_battery = %d\n", _is_solo_battery);
 		if (_is_solo_battery) {
 			// read the button press indicator
 			if (read_block(BATT_SMBUS_MANUFACTURER_DATA, buff, 6, false) == 6) {
@@ -704,10 +707,15 @@ BATT_SMBUS::cycle()
 			}
 		}
 
+		
 
 		// publish to orb
 		if (_batt_topic != nullptr) {
+			//warnx("****cycle()****V=%4.2f C=%4.2f DismAh=%4.2f Cap:%d Shutdown:%d", (double)new_report.voltage_v, (double)new_report.current_a,(double)new_report.discharged_mah, (int)_batt_capacity, (int)new_report.is_powering_off);
+
+			
 			orb_publish(_batt_orb_id, _batt_topic, &new_report);
+			//printf(" zheng ***  publish to orb ------ connected = %d - new_report.voltage_v = %lf - new_report.current_a = %lf\n", new_report.connected, (double)new_report.voltage_v, (double)new_report.current_a);
 
 		} else {
 			_batt_topic = orb_advertise(_batt_orb_id, &new_report);
@@ -715,6 +723,7 @@ BATT_SMBUS::cycle()
 			if (_batt_topic == nullptr) {
 				errx(1, "ADVERT FAIL");
 			}
+			//printf(" fan ***  publish to orb ------ connected = %d - new_report.voltage_v = %lf - new_report.current_a = %lf\n", new_report.connected, (double)new_report.voltage_v, (double)new_report.current_a);
 		}
 
 		// copy report for test()
@@ -773,7 +782,7 @@ BATT_SMBUS::write_reg(uint8_t reg, uint16_t val)
 	int ret = transfer(buff, 3, nullptr, 0);
 
 	if (ret != OK) {
-		debug("Register write error");
+		//debug("Register write error");
 	}
 
 	// return success or failure
@@ -837,7 +846,7 @@ BATT_SMBUS::write_block(uint8_t reg, uint8_t *data, uint8_t len)
 
 	// return zero on failure
 	if (ret != OK) {
-		debug("Block write error\n");
+		//debug("Block write error\n");
 		return 0;
 	}
 
@@ -913,7 +922,7 @@ BATT_SMBUS::ManufacturerAccess(uint16_t cmd)
 	int ret = write_reg(BATT_SMBUS_MANUFACTURER_ACCESS, cmd);
 
 	if (ret != OK) {
-		debug("Manufacturer Access error");
+		//debug("Manufacturer Access error");
 	}
 
 	return ret;

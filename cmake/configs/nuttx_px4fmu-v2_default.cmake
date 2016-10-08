@@ -18,6 +18,7 @@ set(config_module_list
 	drivers/boards/px4fmu-v2
 	drivers/rgbled
 	drivers/mpu6000
+	drivers/batt_smbus
 	drivers/mpu9250
 	drivers/lsm303d
 	drivers/l3gd20

@@ -38,12 +38,16 @@
  *
  * @author James Wilson <jywilson99@hotmail.com>
  */
-
+#define DEBUG 0
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_adc.h>
+#if DEBUG
+#include <drivers/drv_batt_smbus.h>
+#endif
+
 
 
 #include <DevMgr.hpp>
@@ -81,6 +85,13 @@ int		gyro_init();
  */
 int		mag_init();
 
+#if DEBUG
+/**
+ * Do battery_smbus -related initialisation.
+ */
+int		batt_smbus_init();
+#endif
+
 /**
  * Do baro-related initialisation.
  */
@@ -104,6 +115,12 @@ sensors_init(void)
 	ret = mag_init();
 
 	if (ret) { ret_combined = ret; }
+
+#if DEBUG
+	ret = batt_smbus_init();
+
+	if (ret) { return ret; }
+#endif
 
 	ret = baro_init();
 

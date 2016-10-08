@@ -1163,6 +1163,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 {
+	printf("MavlinkReceiver  --- I am in handle_message_battery_status\n");
 	// external battery measurements
 	mavlink_battery_status_t battery_mavlink;
 	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
@@ -1187,10 +1188,13 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.cell_count = cell_count;
 	battery_status.connected = true;
 
+	
 	if (_battery_pub == nullptr) {
 		_battery_pub = orb_advertise(ORB_ID(battery_status), &battery_status);
+ 		//printf("NO1. MavlinkReceiver:: battery_status.cell_count = %d - battery_status.voltage_v = %lf - battery_status.current_a = %lf\n", battery_status.cell_count, (double)battery_status.voltage_v, (double)battery_status.current_a);
 
 	} else {
+ 		//printf("NO2. MavlinkReceiver:: battery_status.cell_count = %d - battery_status.voltage_v = %lf - battery_status.current_a = %lf\n", battery_status.cell_count, (double)battery_status.voltage_v, (double)battery_status.current_a);
 		orb_publish(ORB_ID(battery_status), _battery_pub, &battery_status);
 	}
 }
@@ -2074,6 +2078,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
+	//printf("I am in MavlinkReceiver::receive_thread()\n");
 
 	/* set thread name */
 	{

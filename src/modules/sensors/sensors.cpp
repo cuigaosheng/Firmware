@@ -45,7 +45,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  * @author Anton Babushkin <anton@px4.io>
  */
-
 #include <board_config.h>
 
 #include <px4_adc.h>
@@ -235,6 +234,7 @@ private:
 
 	int		_actuator_ctrl_0_sub;		/**< attitude controls sub */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
+	int             _battery_sub;                   /**< raw smbus battery sub */
 	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vcontrol_mode_sub;		/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -438,6 +438,7 @@ private:
 	 */
 	int		adc_init();
 
+
 	/**
 	 * Poll the accelerometer for updated data.
 	 *
@@ -531,6 +532,7 @@ private:
 	 */
 	void		adc_poll(struct sensor_combined_s &raw);
 
+
 	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
@@ -570,6 +572,7 @@ Sensors::Sensors() :
 	_publishing(true),
 	_armed(false),
 	_rc_sub(-1),
+	_battery_sub(-1),
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
 	_rc_parameter_map_sub(-1),
@@ -1057,7 +1060,6 @@ Sensors::parameters_update()
 
 	return ret;
 }
-
 
 int
 Sensors::adc_init()
@@ -1773,7 +1775,6 @@ Sensors::rc_parameter_map_poll(bool forced)
 void
 Sensors::adc_poll(struct sensor_combined_s &raw)
 {
-	/* only read if publishing */
 	if (!_publishing) {
 		return;
 	}
@@ -1782,86 +1783,38 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 	/* rate limit to 100 Hz */
 	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-		struct adc_msg_s buf_adc[12];
-		/* read all channels available */
-		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+		bool battery_updated = false;
+		orb_check(_battery_sub, &battery_updated);
 
-		float bat_voltage_v = 0.0f;
-		float bat_current_a = 0.0f;
+ 		if (battery_updated) {
+                	/* read smart battery (smbus) */
+                	orb_copy(ORB_ID(battery_status), _battery_sub, &_battery_status);
+		}
 		bool updated_battery = false;
 
-		if (ret >= (int)sizeof(buf_adc[0])) {
-
-			/* Read add channels we got */
-			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-
-				/* look for specific channels and process the raw voltage to measurement data */
-				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-					/* Voltage in volts */
-					bat_voltage_v = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
-
-					if (bat_voltage_v > 0.5f) {
-						updated_battery = true;
-					}
-
-				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
-					bat_current_a = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
-							 - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
-
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-
-				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-
-					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
-
-					/**
-					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor. Also assume a non-
-					 * zero offset from the sensor if its connected.
-					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
-
-						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
-
-						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-								(diff_pres_pa_raw * 0.1f);
-						_diff_pres.temperature = -1000.0f;
-
-						/* announce the airspeed if needed, just publish else */
-						if (_diff_pres_pub != nullptr) {
-							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
-
-						} else {
-							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
-						}
-					}
-
-#endif
-				}
-			}
-
-			if (_parameters.battery_source == 0 && updated_battery) {
-				actuator_controls_s ctrl;
-				orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
-				_battery.updateBatteryStatus(t, bat_voltage_v, bat_current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-							     _armed, &_battery_status);
-
-				/* announce the battery status if needed, just publish else */
-				if (_battery_pub != nullptr) {
-					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-
-				} else {
-					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
-				}
-			}
-
-			_last_adc = t;
-
+		if(_battery_status.voltage_v > 0.5f){
+			updated_battery = true;
 		}
+
+		//printf("I am here, and battery_source = %d - updated_battery = %d\n", _parameters.battery_source,updated_battery);
+		/*When voltage_v is zero, MAV will drop to ground.*/
+		if(_parameters.battery_source == 0 && updated_battery ) {
+			actuator_controls_s ctrl;
+			orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+			_battery.updateBatteryStatus(t, _battery_status.voltage_v, _battery_status.current_a, ctrl.control[actuator_controls_s::INDEX_THROTTLE], _armed, &_battery_status);
+			if(_battery_status.connected == 0 || _battery_status.remaining < 0.1f || _battery_status.voltage_v < 0.1f){
+				
+				while(1){printf("connected drop!\n");};
+			}
+			//printf("sensors.cpp connected=%d-v =%.2lf-filtered_v=%.2lf-a=%.2lf-filtered_a=%.2lf-remaining=%lf-cell_count=%d\n", _battery_status.connected, (double)_battery_status.voltage_v, (double)_battery_status.voltage_filtered_v, (double)_battery_status.current_a, (double)_battery_status.current_filtered_a,(double)_battery_status.remaining, _battery_status.cell_count) ;
+			if (_battery_pub != nullptr) {
+				orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+			} else {
+				_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+			}
+		}
+
+	_last_adc = t;
 	}
 }
 
@@ -2302,6 +2255,8 @@ Sensors::task_main()
 
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 
+	_battery_sub = orb_subscribe(ORB_ID(battery_status));
+
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -2313,6 +2268,7 @@ Sensors::task_main()
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+
 
 	raw.timestamp = 0;
 
@@ -2386,7 +2342,7 @@ Sensors::task_main()
 		/* check battery voltage */
 		adc_poll(raw);
 
-		diff_pres_poll(raw);
+		//diff_pres_poll(raw);
 
 		if (_publishing && raw.timestamp > 0) {
 
@@ -2455,12 +2411,14 @@ Sensors::task_main()
 	}
 
 	orb_unsubscribe(_rc_sub);
+	orb_unsubscribe(_battery_sub);
 	orb_unsubscribe(_diff_pres_sub);
 	orb_unsubscribe(_vcontrol_mode_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_rc_parameter_map_sub);
 	orb_unsubscribe(_manual_control_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
+
 	orb_unadvertise(_sensor_pub);
 
 	_sensors_task = -1;

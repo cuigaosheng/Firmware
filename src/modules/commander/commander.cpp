@@ -285,6 +285,7 @@ static bool is_hil_setup(int id) {
 
 int commander_main(int argc, char *argv[])
 {
+	//printf("*************I am here commander_main***********\n");
 	if (argc < 2) {
 		usage("missing command");
 		return 1;
@@ -1188,6 +1189,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 int commander_thread_main(int argc, char *argv[])
 {
+	//printf("command_thread_main\n");
 	/* not yet initialized */
 	commander_initialized = false;
 
