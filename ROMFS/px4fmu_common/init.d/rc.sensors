@@ -49,7 +49,7 @@ fi
 
 if ver hwcmp PX4FMU_V2
 then
-	if batt_smbus -b 1 -a 0xb start 
+	if batt_smbus -b 1 start 
 	# External I2C bus
 	#if hmc5883 -C -T -X start
 	then

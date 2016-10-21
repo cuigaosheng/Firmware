@@ -612,7 +612,7 @@ protected:
 		const bool updated_status = _status_sub->update(&status);
 		const bool updated_cpuload = _cpuload_sub->update(&cpuload);
 		const bool updated_battery = _battery_status_sub->update(&battery_status);
-#if 1
+#if true
 		battery_status.connected = true;
 		if(battery_status.voltage_filtered_v < 0.2f){
 			battery_status.voltage_filtered_v = battery_status.voltage_v;

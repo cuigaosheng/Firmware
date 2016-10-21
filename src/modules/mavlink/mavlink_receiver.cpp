@@ -1163,7 +1163,6 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 {
-	printf("MavlinkReceiver  --- I am in handle_message_battery_status\n");
 	// external battery measurements
 	mavlink_battery_status_t battery_mavlink;
 	mavlink_msg_battery_status_decode(msg, &battery_mavlink);
@@ -2078,7 +2077,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 void *
 MavlinkReceiver::receive_thread(void *arg)
 {
-	//printf("I am in MavlinkReceiver::receive_thread()\n");
 
 	/* set thread name */
 	{
