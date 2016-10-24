@@ -155,6 +155,12 @@ then
 	#
 	if param compare SYS_USE_IO 1
 	then
+		if ver hwcmp PX4FMU_V2
+		then
+			param set SYS_AUTOSTART 4010
+			set AUTOCNF yes
+		fi
+
 		if ver hwcmp PX4FMU_V4
 		then
 			set USE_IO no

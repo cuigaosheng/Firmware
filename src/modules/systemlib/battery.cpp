@@ -106,6 +106,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 void
 Battery::filterVoltage(float voltage_v)
 {
+//Use IIC to replace the ADC
 #if 0
 	if (_voltage_filtered_v < 0.0f) {
 		_voltage_filtered_v = voltage_v;
@@ -125,6 +126,7 @@ Battery::filterVoltage(float voltage_v)
 void
 Battery::filterCurrent(float current_a)
 {
+//Use IIC to replace the ADC
 #if 0
 	if (_current_filtered_a < 0.0f) {
 		_current_filtered_a = current_a;
